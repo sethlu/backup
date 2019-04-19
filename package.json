@@ -1,0 +1,16 @@
+{
+  "name": "backup",
+  "version": "0.0.0",
+  "description": "",
+  "bin": {
+    "backup": "bin/backup.js"
+  },
+  "author": "sethlu",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.4.13",
+    "prompts": "^2.0.4",
+    "string-format": "^2.0.0",
+    "yargs": "^13.2.2"
+  }
+}
