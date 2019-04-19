@@ -29,13 +29,33 @@ function appendFile(filepath, data) {
         fs.appendFile(filepath, data, (err) => {
             if (err) reject(err);
             else resolve();
-        })
+        });
     })
+}
+
+function lstat(filepath) {
+    return new Promise((resolve, reject) => {
+        fs.lstat(filepath, (err, stats) => {
+            if (err) reject(err);
+            else resolve(stats);
+        });
+    });
+}
+
+function realpath(filepath) {
+    return new Promise((resolve, reject) => {
+        fs.realpath(filepath, (err, resolvedPath) => {
+            if (err) reject(err);
+            else resolve(resolvedPath);
+        });
+    });
 }
 
 module.exports = {
     fileExists,
     readFile,
     writeFile,
-    appendFile
+    appendFile,
+    lstat,
+    realpath
 };

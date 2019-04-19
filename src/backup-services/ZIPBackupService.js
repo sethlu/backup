@@ -6,7 +6,9 @@ const format = require('string-format')
 
 const BackupService = require('./BackupService');
 const {
-    fileExists
+    fileExists,
+    lstat,
+    realpath
 } = require('../utils');
 
 class ZIPBackupService extends BackupService {
@@ -42,14 +44,19 @@ class ZIPBackupService extends BackupService {
             this.zip = new AdmZip();
         }
 
-        filepaths.forEach((filepath) => {
+        await Promise.all(filepaths.map(async (filepath) => {
             reportingService.report(`Adding: ${filepath}`);
-            if (fs.lstatSync(filepath).isFile()) {
+
+            const stats = await lstat(filepath);
+            if (stats.isSymbolicLink()) {
+                const resolvedFilepath = await realpath(filepath);
+                this.zip.addFile(filepath, `Backup symlink: ${resolvedFilepath}`);
+            } else if (stats.isFile()) {
                 this.zip.addLocalFile(filepath, path.dirname(filepath));
             } else {
                 this.zip.addLocalFolder(filepath, filepath);
             }
-        });
+        }));
         this.zip.writeZip(formattedFilePath);
 
         reportingService.report(`File written to: ${formattedFilePath}`);
