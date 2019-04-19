@@ -50,7 +50,7 @@ class ZIPBackupService extends BackupService {
             const stats = await lstat(filepath);
             if (stats.isSymbolicLink()) {
                 const resolvedFilepath = await realpath(filepath);
-                this.zip.addFile(filepath, `Backup symlink: ${resolvedFilepath}`);
+                this.zip.addFile(`${filepath}.backup-symlink`, resolvedFilepath);
             } else if (stats.isFile()) {
                 this.zip.addLocalFile(filepath, path.dirname(filepath));
             } else {
