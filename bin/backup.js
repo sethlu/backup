@@ -135,6 +135,7 @@ async function backup() {
     if (!config) throw new Error('Config not found');
     if (!config.files) throw new Error('No files registered for backup');
     if (!config.backupServices) throw new Error('No backup services configured');
+    if (!config.reportingServices) throw new Error('No reporting services configured');
 
     const mergedReportingService =
         new ReportingService.MergedReportingService(Object.values(config.reportingServices));
