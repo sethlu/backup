@@ -31,8 +31,8 @@ class ZIPBackupService extends BackupService {
         const formattedFilePath = format(this.zipFilepath, {
             date: {
                 yyyy: date.getFullYear(),
-                mm: ('0' + date.getMonth()).slice(-2),
-                dd: ('0' + date.getDay()).slice(-2)
+                mm: ('0' + (date.getMonth() + 1)).slice(-2),
+                dd: ('0' + date.getDate()).slice(-2)
             }
         });
 
