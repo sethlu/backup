@@ -7,7 +7,9 @@ const format = require('string-format')
 const BackupService = require('./BackupService');
 const {
     fileExists,
+    readFile,
     lstat,
+    readdir,
     realpath
 } = require('../utils');
 
@@ -28,7 +30,7 @@ class ZIPBackupService extends BackupService {
         const AdmZip = require('adm-zip');
 
         const date = new Date();
-        const formattedFilePath = format(this.zipFilepath, {
+        const formattedZipFilePath = format(this.zipFilepath, {
             date: {
                 yyyy: date.getFullYear(),
                 mm: ('0' + (date.getMonth() + 1)).slice(-2),
@@ -36,30 +38,66 @@ class ZIPBackupService extends BackupService {
             }
         });
 
-        reportingService.report(`Backing up files to: ${formattedFilePath}`);
+        reportingService.report(`Backing up to:    ${formattedZipFilePath}`);
 
-        if (await fileExists(formattedFilePath)) {
-            this.zip = new AdmZip(formattedFilePath);
+        if (await fileExists(formattedZipFilePath)) {
+            this.zip = new AdmZip(formattedZipFilePath);
         } else {
             this.zip = new AdmZip();
         }
 
-        await Promise.all(filepaths.map(async (filepath) => {
-            reportingService.report(`Adding: ${filepath}`);
+        const seenFilePaths = new Set();
 
-            const stats = await lstat(filepath);
-            if (stats.isSymbolicLink()) {
-                const resolvedFilepath = await realpath(filepath);
-                this.zip.addFile(`${filepath}.backup-symlink`, resolvedFilepath);
-            } else if (stats.isFile()) {
-                this.zip.addLocalFile(filepath, path.dirname(filepath));
-            } else {
-                this.zip.addLocalFolder(filepath, filepath);
-            }
-        }));
-        this.zip.writeZip(formattedFilePath);
+        while (filepaths.length > 0) {
 
-        reportingService.report(`File written to: ${formattedFilePath}`);
+            let dependencyFilePaths = [];
+
+            await Promise.all(filepaths.map(async (filepath) => {
+                if (seenFilePaths.has(filepath)) {
+                    reportingService.report(`Skipping:         ${filepath}`);
+                    return;
+                }
+                seenFilePaths.add(filepath);
+
+                const stats = await lstat(filepath);
+                if (stats.isSymbolicLink()) {
+                    const resolvedFilepath = await realpath(filepath);
+
+                    reportingService.report(`Adding symlink:   ${filepath} -> ${resolvedFilepath}`);
+
+                    const entryName = `${filepath}.backup-symlink`;
+                    const entry = this.zip.getEntry(entryName);
+                    if (entry) {
+                        this.zip.updateFile(entry, resolvedFilepath);
+                    } else {
+                        this.zip.addFile(entryName, resolvedFilepath);
+                    }
+
+                    dependencyFilePaths.push(resolvedFilepath);
+                } else if (stats.isFile()) {
+                    reportingService.report(`Adding file:      ${filepath}`);
+
+                    const entryName = filepath;
+                    const entry = this.zip.getEntry(entryName);
+                    const buffer = await readFile(filepath);
+                    if (entry) {
+                        this.zip.updateFile(entry, buffer);
+                    } else {
+                        this.zip.addFile(entryName, buffer);
+                    }
+                } else {
+                    reportingService.report(`Adding directory: ${filepath}`);
+
+                    const files = await readdir(filepath);
+                    dependencyFilePaths.push(...files.map(file => path.join(filepath, file)));
+                }
+            }));
+
+            filepaths = dependencyFilePaths;
+        }
+        this.zip.writeZip(formattedZipFilePath);
+
+        reportingService.report(`Backup written:   ${formattedZipFilePath}`);
 
     }
 

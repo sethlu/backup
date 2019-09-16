@@ -42,6 +42,15 @@ function lstat(filepath) {
     });
 }
 
+function readdir(path) {
+    return new Promise((resolve, reject) => {
+        fs.readdir(path, (err, files) => {
+            if (err) reject(err);
+            else resolve(files);
+        })
+    })
+}
+
 function realpath(filepath) {
     return new Promise((resolve, reject) => {
         fs.realpath(filepath, (err, resolvedPath) => {
@@ -57,5 +66,6 @@ module.exports = {
     writeFile,
     appendFile,
     lstat,
+    readdir,
     realpath
 };
