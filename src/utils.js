@@ -1,4 +1,5 @@
 const fs = require('fs');
+const child_process = require('child_process');
 
 function fileExists(filepath) {
     return new Promise((resolve) => {
@@ -60,6 +61,15 @@ function realpath(filepath) {
     });
 }
 
+function exec(command) {
+    return new Promise((resolve, reject) => {
+        child_process.exec(command, (err, stdout, stderr) => {
+            if (err) reject(err);
+            else resolve({ stdout, stderr });
+        });
+    });
+}
+
 module.exports = {
     fileExists,
     readFile,
@@ -67,5 +77,6 @@ module.exports = {
     appendFile,
     lstat,
     readdir,
-    realpath
+    realpath,
+    exec
 };

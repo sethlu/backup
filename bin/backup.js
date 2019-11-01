@@ -6,7 +6,8 @@ const os = require('os');
 const {
     fileExists,
     readFile,
-    writeFile
+    writeFile,
+    exec
 } = require('../src/utils');
 
 const BACKUP_SERVICES = require('../src/backup-services');
@@ -155,6 +156,14 @@ async function backup() {
     }
 
     mergedReportingService.report('Backup finished');
+
+    if (config.postBackupScripts && config.postBackupScripts.length > 0) {
+        mergedReportingService.report(`Running post-backup scripts:\n${config.postBackupScripts.join("\n")}`);
+
+        await Promise.all(config.postBackupScripts.map((script) => exec(script)));
+
+        mergedReportingService.report('Post-backup scripts finished');
+    }
 
     await Promise.all(Object.values(config.reportingServices).map((service) => service.flush()));
 
